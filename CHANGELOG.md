@@ -1,7 +1,9 @@
 # UNRELEASED
   - Changes from 5.14
-    - Internals
-      - Guidance refactoring step to decouple intersection connectivity analysis and turn instructions generation
+    - Guidance:
+      - CHANGED: Guidance refactoring step to decouple intersection connectivity analysis and turn instructions generation [#4706](https://github.com/Project-OSRM/osrm-backend/pull/4706)
+    - Bugfixes:
+      - FIXED: Fixed regression in bearings reordering introduced in 5.13 [#4704](https://github.com/Project-OSRM/osrm-backend/issues/4704)
 
 # 5.14.1
   - Changes from 5.14.0
