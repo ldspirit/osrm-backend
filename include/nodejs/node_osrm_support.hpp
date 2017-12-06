@@ -242,7 +242,7 @@ inline engine_config_ptr argumentsToEngineConfig(const Nan::FunctionCallbackInfo
         engine_config->max_alternatives = static_cast<int>(max_alternatives->NumberValue());
     if (max_radius_map_matching->IsNumber())
         engine_config->max_radius_map_matching =
-            static_cast<boost::optional<double>>(max_radius_map_matching->NumberValue());
+            static_cast<double>(max_radius_map_matching->NumberValue());
 
     return engine_config;
 }

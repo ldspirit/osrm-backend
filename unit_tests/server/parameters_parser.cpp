@@ -74,8 +74,6 @@ BOOST_AUTO_TEST_CASE(invalid_route_urls)
     BOOST_CHECK_EQUAL(testInvalidOptions<RouteParameters>("1,2;3,4?annotations=true,false"), 24UL);
     BOOST_CHECK_EQUAL(
         testInvalidOptions<RouteParameters>("1,2;3,4?annotations=&overview=simplified"), 20UL);
-
-    // BOOST_CHECK_EQUAL(testInvalidOptions<RouteParameters>(), );
 }
 
 BOOST_AUTO_TEST_CASE(invalid_table_urls)

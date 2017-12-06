@@ -12,7 +12,6 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/any.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/optional/optional_io.hpp>
 #include <boost/program_options.hpp>
 
 #include <cstdlib>
@@ -136,7 +135,7 @@ inline unsigned generateServerProgramOptions(const int argc,
          value<int>(&config.max_alternatives)->default_value(3),
          "Max. number of alternatives supported in the MLD route query") //
         ("max-matching-radius",
-         value<boost::optional<double>>(&config.max_radius_map_matching)->default_value(5),
+         value<double>(&config.max_radius_map_matching)->default_value(5),
          "Max. radius size supported in map matching query");
 
     // hidden options, will be allowed on command line, but will not be shown to the user
