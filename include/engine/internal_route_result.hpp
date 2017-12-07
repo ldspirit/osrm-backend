@@ -15,6 +15,7 @@
 #include "util/typedefs.hpp"
 
 #include <vector>
+#include <algorithm>
 
 namespace osrm
 {
@@ -91,6 +92,36 @@ struct InternalRouteResult
         return ret;
     }
 };
+
+inline void ElongateInternalRouteResult(InternalRouteResult &base_result, InternalRouteResult &new_result, std::size_t ups_index)
+{
+    BOOST_ASSERT(base_result.is_valid());
+    BOOST_ASSERT(new_result.is_valid());
+    bool new_leg = base_result.unpacked_path_segments.size() - 1 >= ups_index;
+    if (new_leg) base_result.unpacked_path_segments.push_back({});
+    auto new_segments_begin = new_result.unpacked_path_segments[ups_index].begin();
+    auto new_src_reverse_begin = new_result.source_traversed_in_reverse.begin();
+    auto new_trg_reverse_begin = new_result.target_traversed_in_reverse.begin();
+    auto new_src_reverse_end = new_result.source_traversed_in_reverse.end();
+    auto new_trg_reverse_end = new_result.target_traversed_in_reverse.end();
+    auto new_segments_end = new_result.unpacked_path_segments[ups_index].end();
+    // if the base result ends where the new one starts, deduplicate
+    if (base_result.unpacked_path_segments[ups_index].back().turn_via_node == new_result.unpacked_path_segments[ups_index].front().turn_via_node) // FIXME there must be a better way to make this check
+    {
+        new_segments_begin++;
+        new_src_reverse_begin++; // ?? what is this actually
+        new_trg_reverse_begin++;
+    }
+    std::move(new_segments_begin, new_segments_end, std::back_inserter(base_result.unpacked_path_segments[ups_index]));
+    std::move(new_src_reverse_begin, new_src_reverse_end, std::back_inserter(base_result.source_traversed_in_reverse));
+    std::move(new_trg_reverse_begin, new_trg_reverse_end, std::back_inserter(base_result.target_traversed_in_reverse));
+    base_result.shortest_path_weight = base_result.shortest_path_weight + new_result.shortest_path_weight;
+    if (new_leg)
+    {
+        // if this is a new leg, insert the last phantom_node pair of the new_result into the base_result segment_end_coordinates
+        // otherwise, replace the last segment_end_coordinate with the last one in the new_result segment_end_coordinates
+    }
+}
 
 struct InternalManyRoutesResult
 {
