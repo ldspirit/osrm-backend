@@ -109,36 +109,6 @@ void filterCandidates(const std::vector<util::Coordinate> &coordinates,
     }
 }
 
-void ElongateInternalRouteResult(InternalRouteResult &base_result, InternalRouteResult &new_result, std::size_t ups_index)
-{
-    BOOST_ASSERT(base_result.is_valid());
-    BOOST_ASSERT(new_result.is_valid());
-    bool new_leg = base_result.unpacked_path_segments.size() - 1 >= ups_index;
-    if (new_leg) base_result.unpacked_path_segments.push_back({});
-    auto new_segments_begin = new_result.unpacked_path_segments[ups_index].begin();
-    auto new_src_reverse_begin = new_result.source_traversed_in_reverse.begin();
-    auto new_trg_reverse_begin = new_result.target_traversed_in_reverse.begin();
-    auto new_src_reverse_end = new_result.source_traversed_in_reverse.end();
-    auto new_trg_reverse_end = new_result.target_traversed_in_reverse.end();
-    auto new_segments_end = new_result.unpacked_path_segments[ups_index].end();
-    // if the base result ends where the new one starts, deduplicate
-    if (base_result.unpacked_path_segments[ups_index].back().turn_via_node == new_result.unpacked_path_segments[ups_index].front().turn_via_node) // FIXME there must be a better way to make this check
-    {
-        new_segments_begin++;
-        new_src_reverse_begin++; // ?? what is this actually
-        new_trg_reverse_begin++;
-    }
-    std::move(new_segments_begin, new_segments_end, std::back_inserter(base_result.unpacked_path_segments[ups_index]));
-    std::move(new_src_reverse_begin, new_src_reverse_end, std::back_inserter(base_result.source_traversed_in_reverse));
-    std::move(new_trg_reverse_begin, new_trg_reverse_end, std::back_inserter(base_result.target_traversed_in_reverse));
-    base_result.shortest_path_weight = base_result.shortest_path_weight + new_result.shortest_path_weight;
-    if (new_leg)
-    {
-        // if this is a new leg, insert the last phantom_node pair of the new_result into the base_result segment_end_coordinates
-        // otherwise, replace the last segment_end_coordinate with the last one in the new_result segment_end_coordinates
-    }
-}
-
 Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
                                   const api::MatchParameters &parameters,
                                   util::json::Object &json_result) const
@@ -249,20 +219,25 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
     }
 
     // hardcode for now
-    // TODO parse user supplied waypoints parameter
+    // TODO parse user supplied waypoints parameter, and set default to have all input coordinates
+    // marked as parameter_waypoints
     std::vector<std::size_t> parameter_waypoints = {1, 5};
+    // Check if user-supplied waypoints can be found in the resulting matches
     for (const auto waypoint : parameter_waypoints)
     {
         bool found = false;
-        std::for_each(sub_matchings.begin(), sub_matchings.end(), [&](SubMatching &sm) {
+        std::for_each(sub_matchings.begin(), sub_matchings.end(), [&](const SubMatching &sm) {
             auto index = std::find(sm.indices.begin(), sm.indices.end(), waypoint);
-            if (index != sm.indices.end()) found = true;
+            if (index != sm.indices.end())
+                found = true;
         });
-        if (!found) return Error("NoMatch", "Requested waypoint parameter could not be matched.", json_result);
+        if (!found)
+            return Error(
+                "NoMatch", "Requested waypoint parameter could not be matched.", json_result);
     }
 
-    std::vector<InternalRouteResult> sub_routes(sub_matchings.size());
     // each sub_route will correspond to a MatchObject
+    std::vector<InternalRouteResult> sub_routes(sub_matchings.size());
     for (auto index : util::irange<std::size_t>(0UL, sub_matchings.size()))
     {
         BOOST_ASSERT(sub_matchings[index].nodes.size() > 1);
@@ -270,41 +245,25 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         // FIXME we only run this to obtain the geometry
         // The clean way would be to get this directly from the map matching plugin
         PhantomNodes current_phantom_node_pair;
+        std::vector<bool> waypoint_legs;
+        waypoint_legs.reserve(sub_matchings[index].nodes.size());
         for (unsigned i = 0; i < sub_matchings[index].nodes.size() - 1; ++i)
         {
-            // start a new leg if the sub_matching index being processed is a user requested waypoint
-            // TODO ... make this into a function
-            bool new_leg =  std::find(parameter_waypoints.begin(), parameter_waypoints.end(), sub_matchings[index].indices[i]) != parameter_waypoints.end();
+            auto is_waypoint = std::find(parameter_waypoints.begin(), parameter_waypoints.end(), sub_matchings[index].indices[i]);
+            waypoint_legs[i] = is_waypoint != parameter_waypoints.end();
             current_phantom_node_pair.source_phantom = sub_matchings[index].nodes[i];
             current_phantom_node_pair.target_phantom = sub_matchings[index].nodes[i + 1];
             BOOST_ASSERT(current_phantom_node_pair.source_phantom.IsValid());
             BOOST_ASSERT(current_phantom_node_pair.target_phantom.IsValid());
-            // force uturns to be on
-            // we split the phantom nodes anyway and only have bi-directional phantom nodes for possible uturns
-            std::vector<PhantomNodes> current_coords{current_phantom_node_pair};
-            InternalRouteResult current_sub_result = algorithms.ShortestPathSearch(current_coords, {false});
-            if (i == 0)
-            {
-                // start new route object, entry in sub_routes should be empty
-                BOOST_ASSERT(!sub_routes[index].is_valid());
-                sub_routes[index] = current_sub_result;
-            }
-            else if (new_leg)
-            {
-                BOOST_ASSERT(sub_routes[index].is_valid());
-                // start new leg in InternalRouteResult
-                auto number_of_legs = sub_routes[index].unpacked_path_segments.size();
-                ElongateInternalRouteResult(sub_routes[index], current_sub_result, number_of_legs + 1);
-            }
-            else
-            {
-                BOOST_ASSERT(sub_routes[index].is_valid());
-                // merge new step into existing InternalRouteResult route leg
-                auto number_of_legs = sub_routes[index].unpacked_path_segments.size();
-                ElongateInternalRouteResult(sub_routes[index], current_sub_result, number_of_legs);
-            }
+            sub_routes[index].segment_end_coordinates.emplace_back(current_phantom_node_pair);
         }
+        // force uturns to be on
+        // we split the phantom nodes anyway and only have bi-directional phantom nodes for
+        // possible uturns
+        sub_routes[index] =
+            algorithms.ShortestPathSearch(sub_routes[index].segment_end_coordinates, {false});
         BOOST_ASSERT(sub_routes[index].shortest_path_weight != INVALID_EDGE_WEIGHT);
+        sub_routes[index] = CollapseInternalRouteResult(sub_routes[index], waypoint_legs);
     }
 
     api::MatchAPI match_api{facade, parameters, tidied};

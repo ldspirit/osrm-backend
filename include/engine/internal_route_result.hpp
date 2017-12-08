@@ -14,8 +14,8 @@
 #include "util/guidance/turn_lanes.hpp"
 #include "util/typedefs.hpp"
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace osrm
 {
@@ -103,6 +103,50 @@ struct InternalManyRoutesResult
 
     std::vector<InternalRouteResult> routes;
 };
+
+static inline InternalRouteResult
+CollapseInternalRouteResult(const InternalRouteResult &leggy_result, std::vector<bool> &is_waypoint)
+{
+    BOOST_ASSERT(leggy_result.is_valid());
+    BOOST_ASSERT(is_waypoint[0]);
+    // Nothing to collapse! return result as is
+    if (leggy_result.unpacked_path_segments.size() == 1 &&
+        leggy_result.segment_end_coordinates.size() == 1)
+        return leggy_result;
+
+    InternalRouteResult collapsed;
+    collapsed.shortest_path_weight = leggy_result.shortest_path_weight;
+    for (std::size_t i = 1; i < leggy_result.unpacked_path_segments.size(); i++)
+    {
+        auto &last_segment = collapsed.unpacked_path_segments.back();
+        if (is_waypoint[i])
+        {
+            // start another leg vector
+            collapsed.unpacked_path_segments.push_back({});
+            // save new phantom node pair
+            collapsed.segment_end_coordinates.push_back(leggy_result.segment_end_coordinates[i]);
+            // save data about phantom nodes
+            collapsed.source_traversed_in_reverse.push_back(
+                leggy_result.source_traversed_in_reverse[i]);
+            collapsed.target_traversed_in_reverse.push_back(
+                leggy_result.target_traversed_in_reverse[i]);
+        }
+        else
+        // no new leg, collapse the next segment into the last leg
+        {
+            // deduplicate last segment
+            last_segment.pop_back();
+            // update target phantom node of leg
+            collapsed.segment_end_coordinates.back().target_phantom =
+                leggy_result.segment_end_coordinates[i].target_phantom;
+        }
+        // copy path segments into current leg
+        last_segment.insert(last_segment.end(),
+                            leggy_result.unpacked_path_segments[i].begin(),
+                            leggy_result.unpacked_path_segments[i].end());
+    }
+    return collapsed;
+}
 }
 }
 
