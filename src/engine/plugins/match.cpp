@@ -218,12 +218,8 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         return Error("NoMatch", "Could not match the trace.", json_result);
     }
 
-    // hardcode for now
-    // TODO parse user supplied waypoints parameter, and set default to have all input coordinates
-    // marked as parameter_waypoints
-    std::vector<std::size_t> parameter_waypoints = {1, 5};
     // Check if user-supplied waypoints can be found in the resulting matches
-    for (const auto waypoint : parameter_waypoints)
+    for (const auto waypoint : parameters.waypoints)
     {
         bool found = false;
         std::for_each(sub_matchings.begin(), sub_matchings.end(), [&](const SubMatching &sm) {
@@ -245,12 +241,8 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         // FIXME we only run this to obtain the geometry
         // The clean way would be to get this directly from the map matching plugin
         PhantomNodes current_phantom_node_pair;
-        std::vector<bool> waypoint_legs;
-        waypoint_legs.reserve(sub_matchings[index].nodes.size());
         for (unsigned i = 0; i < sub_matchings[index].nodes.size() - 1; ++i)
         {
-            auto is_waypoint = std::find(parameter_waypoints.begin(), parameter_waypoints.end(), sub_matchings[index].indices[i]);
-            waypoint_legs[i] = is_waypoint != parameter_waypoints.end();
             current_phantom_node_pair.source_phantom = sub_matchings[index].nodes[i];
             current_phantom_node_pair.target_phantom = sub_matchings[index].nodes[i + 1];
             BOOST_ASSERT(current_phantom_node_pair.source_phantom.IsValid());
@@ -263,7 +255,19 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         sub_routes[index] =
             algorithms.ShortestPathSearch(sub_routes[index].segment_end_coordinates, {false});
         BOOST_ASSERT(sub_routes[index].shortest_path_weight != INVALID_EDGE_WEIGHT);
-        sub_routes[index] = CollapseInternalRouteResult(sub_routes[index], waypoint_legs);
+        if (!parameters.waypoints.empty())
+        {
+            std::vector<bool> waypoint_legs;
+            waypoint_legs.reserve(sub_matchings[index].nodes.size());
+            for (unsigned i = 0; i < sub_matchings[index].nodes.size() - 1; ++i)
+            {
+                auto is_waypoint = std::find(parameters.waypoints.begin(),
+                                             parameters.waypoints.end(),
+                                             sub_matchings[index].indices[i]);
+                waypoint_legs[i] = is_waypoint != parameters.waypoints.end();
+            }
+            sub_routes[index] = CollapseInternalRouteResult(sub_routes[index], waypoint_legs);
+        }
     }
 
     api::MatchAPI match_api{facade, parameters, tidied};
