@@ -532,6 +532,9 @@ BOOST_AUTO_TEST_CASE(valid_table_urls)
     CHECK_EQUAL_RANGE(reference_1.coordinates, result_3->coordinates);
 }
 
+// TODO invalid_match_urls
+// test for invalid waypoints values, e.g. 2.0, a, etc
+// test for waypoint value that doesn't correspond with an input coordinate index
 BOOST_AUTO_TEST_CASE(valid_match_urls)
 {
     std::vector<util::Coordinate> coords_1 = {{util::FloatLongitude{1}, util::FloatLatitude{2}},
@@ -557,6 +560,22 @@ BOOST_AUTO_TEST_CASE(valid_match_urls)
     CHECK_EQUAL_RANGE(reference_2.radiuses, result_2->radiuses);
     CHECK_EQUAL_RANGE(reference_2.approaches, result_2->approaches);
     CHECK_EQUAL_RANGE(reference_2.coordinates, result_2->coordinates);
+
+    std::vector<util::Coordinate> coords_2 = {{util::FloatLongitude{1}, util::FloatLatitude{2}},
+                                              {util::FloatLongitude{3}, util::FloatLatitude{4}},
+                                              {util::FloatLongitude{5}, util::FloatLatitude{6}}};
+
+    MatchParameters reference_3{};
+    reference_3.coordinates = coords_2;
+    reference_3.waypoints = {0, 2};
+    auto result_3 = parseParameters<MatchParameters>("1,2;3,4;5,6?waypoints=0;2");
+    BOOST_CHECK(result_3);
+    CHECK_EQUAL_RANGE(reference_3.waypoints, result_3->waypoints);
+    CHECK_EQUAL_RANGE(reference_3.timestamps, result_3->timestamps);
+    CHECK_EQUAL_RANGE(reference_3.bearings, result_3->bearings);
+    CHECK_EQUAL_RANGE(reference_3.radiuses, result_3->radiuses);
+    CHECK_EQUAL_RANGE(reference_3.approaches, result_3->approaches);
+    CHECK_EQUAL_RANGE(reference_3.coordinates, result_3->coordinates);
 }
 
 BOOST_AUTO_TEST_CASE(valid_nearest_urls)
