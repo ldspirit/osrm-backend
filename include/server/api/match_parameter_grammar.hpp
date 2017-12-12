@@ -44,8 +44,7 @@ struct MatchParametersGrammar final : public RouteParametersGrammar<Iterator, Si
 
         waypoints_rule =
             qi::lit("waypoints=") >
-            (size_t_ %
-             ';')[ph::bind(&engine::api::MatchParameters::waypoints, qi::_r1) = qi::_1];
+            (size_t_ % ';')[ph::bind(&engine::api::MatchParameters::waypoints, qi::_r1) = qi::_1];
 
         gaps_type.add("split", engine::api::MatchParameters::GapsType::Split)(
             "ignore", engine::api::MatchParameters::GapsType::Ignore);

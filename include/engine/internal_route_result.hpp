@@ -108,7 +108,8 @@ inline InternalRouteResult CollapseInternalRouteResult(const InternalRouteResult
                                                        const std::vector<bool> &is_waypoint)
 {
     BOOST_ASSERT(leggy_result.is_valid());
-    BOOST_ASSERT(is_waypoint[0]);
+    BOOST_ASSERT(is_waypoint[0]); // first and last coords
+    BOOST_ASSERT(is_waypoint.back()); // should always be waypoints
     // Nothing to collapse! return result as is
     if (leggy_result.unpacked_path_segments.size() == 1)
         return leggy_result;
@@ -135,8 +136,10 @@ inline InternalRouteResult CollapseInternalRouteResult(const InternalRouteResult
         // no new leg, collapse the next segment into the last leg
         {
             auto &last_segment = collapsed.unpacked_path_segments.back();
-            // deduplicate last segment
-            last_segment.pop_back();
+            // deduplicate last segment (needs to be checked for empty for the same node query edge
+            // case)
+            if (!last_segment.empty())
+                last_segment.pop_back();
             // update target phantom node of leg
             collapsed.segment_end_coordinates.back().target_phantom =
                 leggy_result.segment_end_coordinates[i].target_phantom;

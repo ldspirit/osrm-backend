@@ -480,3 +480,51 @@ Feature: Basic Map Matching
             | trace | a:nodes     |
             | 12    | 1:2:3:4:5:6 |
             | 21    | 6:5:4:3:2:1 |
+
+    Scenario: Testbot - Map matching with trace tidying and waypoints param
+        Given a grid size of 8 meters
+
+        Given the query options
+            | tidy      | true    |
+            | waypoints | 0,2,3,5 |
+
+        Given the node map
+            """
+            a b c d
+
+                e
+
+                g
+            """
+
+        And the ways
+            | nodes | oneway |
+            | abcd  | no     |
+            | ceg   | no     |
+
+        When I match I should get
+            | trace   | matchings |
+            | abcceg  |           |
+
+
+    Scenario: Matching with waypoints param that were tidied away
+        Given the node map
+            """
+            a - b - c - e
+                    |
+                    f
+                    |
+                    g
+            """
+        And the ways
+            | nodes | oneway |
+            | abce  | no     |
+            | cfg   | no     |
+
+        Given the query options
+            | tidy      | true    |
+            | waypoints | 0;2;5   |
+
+        When I match I should get
+            | trace  | code    | matchings |
+            | abccfg | Ok      |           |

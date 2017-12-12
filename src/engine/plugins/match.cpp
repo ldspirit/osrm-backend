@@ -219,7 +219,7 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
     }
 
     // Check if user-supplied waypoints can be found in the resulting matches
-    for (const auto waypoint : parameters.waypoints)
+    for (const auto waypoint : tidied.parameters.waypoints)
     {
         bool found = false;
         std::for_each(sub_matchings.begin(), sub_matchings.end(), [&](const SubMatching &sm) {
@@ -255,16 +255,16 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         sub_routes[index] =
             algorithms.ShortestPathSearch(sub_routes[index].segment_end_coordinates, {false});
         BOOST_ASSERT(sub_routes[index].shortest_path_weight != INVALID_EDGE_WEIGHT);
-        if (!parameters.waypoints.empty())
+        if (!tidied.parameters.waypoints.empty())
         {
             std::vector<bool> waypoint_legs;
             waypoint_legs.reserve(sub_matchings[index].nodes.size());
-            for (unsigned i = 0; i < sub_matchings[index].nodes.size() - 1; ++i)
+            for (unsigned i = 0; i < sub_matchings[index].nodes.size(); ++i)
             {
-                auto is_waypoint = std::find(parameters.waypoints.begin(),
-                                             parameters.waypoints.end(),
+                auto is_waypoint = std::find(tidied.parameters.waypoints.begin(),
+                                             tidied.parameters.waypoints.end(),
                                              sub_matchings[index].indices[i]);
-                waypoint_legs[i] = is_waypoint != parameters.waypoints.end();
+                waypoint_legs.push_back(is_waypoint != tidied.parameters.waypoints.end());
             }
             sub_routes[index] = CollapseInternalRouteResult(sub_routes[index], waypoint_legs);
         }
