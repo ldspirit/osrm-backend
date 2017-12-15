@@ -532,9 +532,19 @@ BOOST_AUTO_TEST_CASE(valid_table_urls)
     CHECK_EQUAL_RANGE(reference_1.coordinates, result_3->coordinates);
 }
 
-// TODO invalid_match_urls
-// test for invalid waypoints values, e.g. 2.0, a, etc
-// test for waypoint value that doesn't correspond with an input coordinate index
+BOOST_AUTO_TEST_CASE(invalid_match_urls)
+{
+    // TODO more invalid_match_urls
+    std::vector<util::Coordinate> coords_1 = {{util::FloatLongitude{1}, util::FloatLatitude{2}},
+                                              {util::FloatLongitude{3}, util::FloatLatitude{4}}};
+
+    MatchParameters reference_1{};
+    reference_1.coordinates = coords_1;
+    BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=0,4"), 19UL);
+    BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=x;4"), 18UL);
+    BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=0;3.5"), 18UL);
+}
+
 BOOST_AUTO_TEST_CASE(valid_match_urls)
 {
     std::vector<util::Coordinate> coords_1 = {{util::FloatLongitude{1}, util::FloatLatitude{2}},
