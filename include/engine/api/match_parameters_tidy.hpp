@@ -95,10 +95,14 @@ inline Result tidy(const MatchParameters &params, Thresholds cfg = {15., 5})
     Result result;
 
     result.can_be_removed.resize(params.coordinates.size(), false);
-    result.was_waypoint.resize(params.coordinates.size(), false);
-    for (const auto p : params.waypoints)
+    result.was_waypoint.resize(params.coordinates.size(), true);
+    if (!params.waypoints.empty())
     {
-        result.was_waypoint.set(p, true);
+        for (const auto p : params.waypoints)
+        {
+            result.was_waypoint.set(p, false);
+        }
+        result.was_waypoint.flip();
     }
 
     result.tidied_to_original.push_back(0);
@@ -177,13 +181,17 @@ inline Result tidy(const MatchParameters &params, Thresholds cfg = {15., 5})
         {
             // one of the coordinates meant to be used as a waypoint was marked for removal
             // update the original waypoint index to the new representative coordinate
-            if (result.was_waypoint[i] &&
-                (result.parameters.waypoints.back() != result.parameters.coordinates.size() - 1))
-                // check if thecurrent size is the last one in the waypoints array
-                result.parameters.waypoints.push_back(result.parameters.coordinates.size() - 1);
+            const auto last_idx = result.parameters.coordinates.size() - 1;
+            if (result.was_waypoint[i] && (result.parameters.waypoints.back() != last_idx))
+            {
+                    result.parameters.waypoints.push_back(last_idx);
+                    //result.was_waypoint[i] = false;
+            }
         }
     }
-    BOOST_ASSERT(result.parameters.waypoints.size() == params.waypoints.size());
+    // todo: this is not always true... e.g. if the first or last coordinate is duplicated and then tidied away
+    // but we do want some kind of check like this
+    //BOOST_ASSERT(result.parameters.waypoints.size() == params.waypoints.size());
     BOOST_ASSERT(result.tidied_to_original.size() == result.parameters.coordinates.size());
 
     return result;
