@@ -219,11 +219,6 @@ inline engine_config_ptr argumentsToEngineConfig(const Nan::FunctionCallbackInfo
         Nan::ThrowError("max_alternatives must be an integral number");
         return engine_config_ptr();
     }
-    if (!max_radius_map_matching->IsUndefined() && !max_radius_map_matching->IsNumber())
-    {
-        Nan::ThrowError("max_radius_map_matching must be an integral number");
-        return engine_config_ptr();
-    }
 
     if (max_locations_trip->IsNumber())
         engine_config->max_locations_trip = static_cast<int>(max_locations_trip->NumberValue());
