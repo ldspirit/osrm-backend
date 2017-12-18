@@ -168,7 +168,7 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         (tidied.parameters.waypoints[0] != 0 ||
          tidied.parameters.waypoints.back() != (tidied.parameters.coordinates.size() - 1)))
     {
-        return Error("InvalidInput",
+        return Error("InvalidValue",
                      "First and last coordinates must be specified as waypoints.",
                      json_result);
     }

@@ -558,8 +558,8 @@ Feature: Basic Map Matching
             | abcd  | no     |
 
         When I match I should get
-            | trace | code         |
-            | abcd  | InvalidInput |
+            | trace | code           |
+            | abcd  | InvalidOptions |
 
     Scenario: Matching fail with waypoints param missing start/end
         Given the node map
@@ -582,4 +582,24 @@ Feature: Basic Map Matching
 
         When I match I should get
             | trace | code         |
-            | abde  | InvalidInput |
+            | abde  | InvalidValue |
+
+    Scenario: Testbot - Map matching with outlier that has no candidate and waypoint parameter
+        Given a grid size of 100 meters
+        Given the node map
+            """
+            a b c d
+
+                1
+            """
+
+        And the ways
+            | nodes | oneway |
+            | abcd  | no     |
+
+        Given the query options
+            | waypoints | 0;2;3   |
+
+        When I match I should get
+            | trace | timestamps | code    |
+            | ab1d  | 0 1 2 3    | NoMatch |

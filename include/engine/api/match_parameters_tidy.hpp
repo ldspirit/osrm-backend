@@ -47,10 +47,14 @@ inline Result keep_all(const MatchParameters &params)
     Result result;
 
     result.can_be_removed.resize(params.coordinates.size(), false);
-    result.was_waypoint.resize(params.coordinates.size(), false);
-    for (const auto p : params.waypoints)
+    result.was_waypoint.resize(params.coordinates.size(), true);
+    if (!params.waypoints.empty())
     {
-        result.was_waypoint.set(p, true);
+        for (const auto p : params.waypoints)
+        {
+            result.was_waypoint.set(p, false);
+        }
+        result.was_waypoint.flip();
     }
     result.tidied_to_original.reserve(params.coordinates.size());
     for (std::size_t current = 0; current < params.coordinates.size(); ++current)
@@ -84,6 +88,8 @@ inline Result keep_all(const MatchParameters &params)
                 result.parameters.timestamps.push_back(params.timestamps[i]);
         }
     }
+    if (params.waypoints.empty())
+        result.parameters.waypoints.clear();
 
     return result;
 }

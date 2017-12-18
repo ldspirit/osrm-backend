@@ -542,7 +542,7 @@ BOOST_AUTO_TEST_CASE(invalid_match_urls)
     reference_1.coordinates = coords_1;
     BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=0,4"), 19UL);
     BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=x;4"), 18UL);
-    BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=0;3.5"), 18UL);
+    BOOST_CHECK_EQUAL(testInvalidOptions<MatchParameters>("1,2;3,4?waypoints=0;3.5"), 21UL);
 }
 
 BOOST_AUTO_TEST_CASE(valid_match_urls)
