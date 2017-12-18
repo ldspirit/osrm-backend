@@ -14,7 +14,6 @@
 #include "util/guidance/turn_lanes.hpp"
 #include "util/typedefs.hpp"
 
-#include <algorithm>
 #include <vector>
 
 namespace osrm

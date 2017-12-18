@@ -163,6 +163,16 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         tidied = api::tidy::keep_all(parameters);
     }
 
+    // Error: first and last points should be waypoints
+    if (!parameters.waypoints.empty() &&
+        (tidied.parameters.waypoints[0] != 0 ||
+         tidied.parameters.waypoints.back() != (tidied.parameters.coordinates.size() - 1)))
+    {
+        return Error("InvalidInput",
+                     "First and last coordinates must be specified as waypoints.",
+                     json_result);
+    }
+
     // assuming radius is the standard deviation of a normal distribution
     // that models GPS noise (in this model), x3 should give us the correct
     // search radius with > 99% confidence
@@ -218,7 +228,13 @@ Status MatchPlugin::HandleRequest(const RoutingAlgorithmsInterface &algorithms,
         return Error("NoMatch", "Could not match the trace.", json_result);
     }
 
-    // Check if user-supplied waypoints can be found in the resulting matches
+    // trace was split, we don't support the waypoints parameter across multiple match objects
+    if (sub_matchings.size() > 1 && !parameters.waypoints.empty())
+    {
+        return Error("NoMatch", "Could not match the trace with the given waypoints.", json_result);
+    }
+
+    // Error: Check if user-supplied waypoints can be found in the resulting matches
     for (const auto waypoint : tidied.parameters.waypoints)
     {
         bool found = false;
